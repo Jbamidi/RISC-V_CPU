@@ -1,10 +1,10 @@
 module ALU_Control(input logic [2:0] funct3, input logic [6:0] funct7, input logic [1:0] ALU_Op, output logic [3:0] ALU_Sel);
 
 
-    always_comb begin
+    always_comb begin    
         unique case(ALU_Op)
             
-            //Load/Store
+            //Load and Store
             2'b00: ALU_Sel = 4'd0; //ADD
             
             //Branch
