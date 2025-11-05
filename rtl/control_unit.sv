@@ -28,7 +28,7 @@ always_comb begin
     MemToReg = 1'b0;
     Branch   = 1'b0;
     ALU_Op   = 2'b00;
-    case(opcode)
+    unique case(opcode)
         //R-Type
         7'b0110011:begin
             ALU_Src = 0;
@@ -80,6 +80,17 @@ always_comb begin
             Branch = 1;
             ALU_Op = 2'b01;
         end
+        
+        
+        default: begin
+            RegWrite = 1'b0;
+            ALU_Src  = 1'b0;
+            MemRead  = 1'b0;
+            MemWrite = 1'b0;
+            MemToReg = 1'b0;
+            Branch   = 1'b0;
+            ALU_Op   = 2'b00;
+        end    
     endcase
 end
 
