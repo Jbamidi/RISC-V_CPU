@@ -1,5 +1,6 @@
 module imm_gen(input logic [31:0] instr, output logic [31:0] imm_out);
 
+//Calculating immediate bits based on ISA for each type
 always_comb begin
     unique case(instr[6:0])
         //I-Type

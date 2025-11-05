@@ -10,7 +10,7 @@ input logic [4:0] rd, input logic [31:0] wdata, output logic [31:0] rd1, output 
     assign rd2 = (rs2 == 0) ? 32'b0: regs[rs2];
     
     // Writing to Register if Write Enable is 1
-    always @(posedge clk)begin
+    always_ff @(posedge clk)begin
         if(wenable && (rd != 5'd0)) begin
             regs[rd] <= wdata;
         end
