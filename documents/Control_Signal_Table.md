@@ -7,16 +7,27 @@ Each control signal determines how the datapath components behave during instruc
 
 ## 🧩 Control Signals per Instruction Type
 
-| Instruction Type | RegWrite | ALU_Src | MemRead | MemWrite | MemToReg | Branch | ALU_Op | Description |
-|------------------|-----------|----------|----------|-----------|-----------|---------|---------|
-| **`R-Type`** (`0110011`) | 1 | 0 | 0 | 0 | 0 | 0 | 10 | ALU operation between two registers |
-| **`I-Type`** (`0010011`) | 1 | 1 | 0 | 0 | 0 | 0 | 11 | ALU operation with immediate |
-| **`Load (LW)`** (`0000011`) | 1 | 1 | 1 | 0 | 1 | 0 | 00 | Read data from memory |
-| **`Store (SW)`** (`0100011`) | 0 | 1 | 0 | 1 | 0 | 0 | 00 | Write data to memory |
-| **`Branch`** (`1100011`) | 0 | 0 | 0 | 0 | 0 | 1 | 01 | Conditional branch based on comparison |
-| **`JAL`** (`1101111`) | 1 | X | 0 | 0 | 0 | 0 | XX | Jump and link (stores PC+4 in rd) |
-| **`JALR`** (`1100111`) | 1 | 1 | 0 | 0 | 0 | 0 | XX | Jump to address in rs1 + imm, stores PC+4 in rd |
-| **`LUI / AUIPC`** (`0110111`, `0010111`) | 1 | 1 | 0 | 0 | 0 | 0 | 00 | Load or add upper immediate to PC |
+| Instruction Type | Opcode (Binary) | RegWrite | ALU_Src | MemRead | MemWrite | MemToReg | Branch | ALU_Op | Description |
+|------------------|-----------------|-----------|----------|----------|-----------|-----------|---------|---------|
+| **R-Type** | `0110011` | 1 | 0 | 0 | 0 | 0 | 0 | 10 | ALU operation between two registers |
+| **I-Type** | `0010011` | 1 | 1 | 0 | 0 | 0 | 0 | 11 | ALU operation with immediate |
+| **Load (LW)** | `0000011` | 1 | 1 | 1 | 0 | 1 | 0 | 00 | Read data from memory |
+| **Store (SW)** | `0100011` | 0 | 1 | 0 | 1 | 0 | 0 | 00 | Write data to memory |
+| **Branch** | `1100011` | 0 | 0 | 0 | 0 | 0 | 1 | 01 | Conditional branch based on comparison |
+| **JAL** | `1101111` | 1 | X | 0 | 0 | 0 | 0 | XX | Jump and link (stores PC+4 in rd) |
+| **JALR** | `1100111` | 1 | 1 | 0 | 0 | 0 | 0 | XX | Jump to address in rs1 + imm, stores PC+4 in rd |
+| **LUI / AUIPC** | `0110111`, `0010111` | 1 | 1 | 0 | 0 | 0 | 0 | 00 | Load or add upper immediate to PC |
+
+---
+
+## 💡 Notes
+
+- `X` means “don’t care” — the signal value is irrelevant for that instruction.
+- `ALU_Op` determines which family of operations the ALU will execute:
+  - `00` → Load/Store (ADD for address calculation)
+  - `01` → Branch (SUB or compare)
+  - `10` → R-Type (ALU from funct3/funct7)
+  - `11` → I-Type (ALU with immediate)
 
 ---
 
@@ -36,15 +47,15 @@ Each control signal determines how the datapath components behave during instruc
 
 ## 🧩 How Control Signals Drive the Datapath
 
-1. **`ALU_Src`** decides if ALU input B is from `rs2` or immediate.
-2. **`ALU_Op`** tells `ALU_Control` which operation family to select.
-3. **`MemRead`** and **`MemWrite`** control data memory access.
-4. **`MemToReg`** chooses whether writeback comes from ALU or DMEM.
-5. **`RegWrite`** finally enables the register file write port.
+1. **`ALU_Src`** decides if ALU input B is from `rs2` or immediate.  
+2. **`ALU_Op`** tells `ALU_Control` which operation family to select.  
+3. **`MemRead`** and **`MemWrite`** control data memory access.  
+4. **`MemToReg`** chooses whether writeback comes from ALU or DMEM.  
+5. **`RegWrite`** enables the register file write port.  
 6. **`Branch`** triggers conditional PC change via `pc_next`.
 
 ---
 
-✅ **Summary:**
-These 7 signals fully control your single-cycle CPU datapath.  
+✅ **Summary:**  
+These 7 control signals fully control your single-cycle CPU datapath.  
 Every instruction in the RISC-V ISA is implemented by a unique combination of these bits — allowing all computation, memory access, and control flow to occur within a single clock cycle.
