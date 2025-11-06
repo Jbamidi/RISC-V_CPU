@@ -28,13 +28,13 @@ logic [31:0] rd2;
 
 
 //PC Counter
-pc_counter instance1(.clk(clk),.reset(reset),.pc(pc),.pc_next(pc_next));
+pc_counter pc_counter(.clk(clk),.reset(reset),.pc(pc),.pc_next(pc_next));
 
 //Incrementing PC
 assign pc_next = pc + 32'd4;
 
 //Getting correct instructions based on PC
-imem instance1(.addr(pc),.instr(instr));
+imem imem_instruction(.addr(pc),.instr(instr));
 
 //Assigning logic based on ISA
 assign opcode = instr[6:0];
@@ -45,8 +45,8 @@ assign rs2 = instr[24:20];
 assign rd = instr[11:7];
 
 //Control signals for all datapaths
-control_unit instance1(.opcode(opcode), .RegWrite(RegWrite), .ALU_Src(ALU_Src), .MemRead(MemRead),.MemWrite(MemWrite),.MemToReg(MemToReg),.Branch(Branch),.ALU_Op(ALU_Op));
-ALU_Control instacae1(.funct3(funct3),.funct7(funct7),.ALU_Op(ALU_Op),.ALU_Sel(ALU_Sel));
+control_unit datapath_signals(.opcode(opcode), .RegWrite(RegWrite), .ALU_Src(ALU_Src), .MemRead(MemRead),.MemWrite(MemWrite),.MemToReg(MemToReg),.Branch(Branch),.ALU_Op(ALU_Op));
+ALU_Control ALU_signals(.funct3(funct3),.funct7(funct7),.ALU_Op(ALU_Op),.ALU_Sel(ALU_Sel));
 
 
 //Testing Purposes
@@ -54,18 +54,18 @@ assign reg_write_addr = rd;
 assign reg_debug = RegWrite;
 
 //ALU operators- immediate or from register file
-regfile instance1(.clk(clk), .wenable(RegWrite),.rs1(rs1),.rs2(rs2),.rd(rd),.wdata(reg_write_data), .rd1(rd1),.rd2(rd2));
-imm_gen instance1(.instr(instr),.imm_out(imm_out));
+regfile register_file(.clk(clk), .wenable(RegWrite),.rs1(rs1),.rs2(rs2),.rd(rd),.wdata(reg_write_data), .rd1(rd1),.rd2(rd2));
+imm_gen immediate_number(.instr(instr),.imm_out(imm_out));
 
 //Decide what b data is going to be for ALU
 assign ALU_b = (ALU_Src) ? imm_out : rd2;
 
 //ALU Operation
-ALU instance1(.a(rd1),.b(ALU_b),.ALU_Sel(ALU_Sel), .ALU_Out(ALU_res));
+ALU ALU_result(.a(rd1),.b(ALU_b),.ALU_Sel(ALU_Sel), .ALU_Out(ALU_res));
 
 
 //DMEM - still need to complete
-dmem instance1(.clk(clk), .MemRead(MemRead),.MemWrite(MemWrite),.addr(ALU_res),.wdata(rd2),.rdata(dmem_data));
+dmem data_memory(.clk(clk), .MemRead(MemRead),.MemWrite(MemWrite),.addr(ALU_res),.wdata(rd2),.rdata(dmem_data));
 
 //Choose what data to store back into register file
 assign reg_write_data = (MemToReg) ? dmem_data : ALU_res;
