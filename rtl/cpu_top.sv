@@ -12,7 +12,7 @@ logic [4:0] rd;
 
 //PC
 logic [31:0] pc_next;
-logic branch_enabled;
+logic [31:0] jal_data_link;
 
 //Control Signals
 logic RegWrite, ALU_Src, MemRead,MemWrite,MemToReg,Branch;
@@ -46,11 +46,6 @@ assign rd = instr[11:7];
 control_unit datapath_signals(.opcode(opcode), .RegWrite(RegWrite), .ALU_Src(ALU_Src), .MemRead(MemRead),.MemWrite(MemWrite),.MemToReg(MemToReg),.Branch(Branch),.ALU_Op(ALU_Op));
 ALU_Control ALU_signals(.funct3(funct3),.funct7(funct7),.ALU_Op(ALU_Op),.ALU_Sel(ALU_Sel));
 
-//Change PC based on Branch
-branch_enabled = Branch && (rd1 == rd2);
-assign pc_next = (branch_enabled) ? (pc + imm_out) : (pc + 32'd4)
-
-
 
 //Testing Purposes
 assign reg_write_addr = rd;
@@ -60,7 +55,8 @@ assign reg_debug = RegWrite;
 regfile register_file(.clk(clk), .wenable(RegWrite),.rs1(rs1),.rs2(rs2),.rd(rd),.wdata(reg_write_data), .rd1(rd1),.rd2(rd2));
 imm_gen immediate_number(.instr(instr),.imm_out(imm_out));
 
-pc_next pc_next()
+//Change PC based on Branch and Jump
+pc_next nextpc (.opcode(opcode),.pc(pc),.rs1(rd1),.rs2(rd2),.imm_out(imm_out),.funct3(funct3),.jal_data(jal_data_link),.pc_next(pc_next));
 
 //Decide what b data is going to be for ALU
 assign ALU_b = (ALU_Src) ? imm_out : rd2;
@@ -73,7 +69,12 @@ ALU ALU_result(.a(rd1),.b(ALU_b),.ALU_Sel(ALU_Sel), .ALU_Out(ALU_res));
 dmem data_memory(.clk(clk), .MemRead(MemRead),.MemWrite(MemWrite),.addr(ALU_res),.wdata(rd2),.rdata(dmem_data));
 
 //Choose what data to store back into register file
-assign reg_write_data = (MemToReg) ? dmem_data : ALU_res;
+logic is_jal, is_jalr;
+assign is_jal  = (opcode == 7'b1101111); // JAL
+assign is_jalr = (opcode == 7'b1100111); // JALR
+
+assign reg_write_data =
+    (is_jal | is_jalr) ? jal_data_link: (MemToReg ? dmem_data: ALU_res);
 
 
 
