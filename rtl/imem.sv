@@ -1,4 +1,4 @@
-module imem(input logic [31:0] pc, output logic [31:0] instr);
+module imem(input logic [31:0] addr, output logic [31:0] instr);
 
 /* Load program at sim start
         Test Instructions:

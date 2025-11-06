@@ -31,10 +31,10 @@ logic [31:0] rd2;
 pc_counter instance1(.clk(clk),.reset(reset),.pc(pc),.pc_next(pc_next));
 
 //Incrementing PC
-assign pc_next = pc_next + 32'd4;
+assign pc_next = pc + 32'd4;
 
 //Getting correct instructions based on PC
-imem instance1(.pc(pc),.instr(instr));
+imem instance1(.addr(pc),.instr(instr));
 
 //Assigning logic based on ISA
 assign opcode = instr[6:0];
@@ -65,7 +65,7 @@ ALU instance1(.a(rd1),.b(ALU_b),.ALU_Sel(ALU_Sel), .ALU_Out(ALU_res));
 
 
 //DMEM - still need to complete
-assign dmem_data = 32'b0;
+dmem instance1(.clk(clk), .MemRead(MemRead),.MemWrite(MemWrite),.addr(ALU_res),.wdata(rd2),.rdata(dmem_data));
 
 //Choose what data to store back into register file
 assign reg_write_data = (MemToReg) ? dmem_data : ALU_res;
