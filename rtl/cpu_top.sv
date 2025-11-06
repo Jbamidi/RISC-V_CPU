@@ -1,0 +1,80 @@
+module cpu_top(input logic clk, input logic reset,
+output logic [31:0] pc, output logic [31:0] instr,output logic [31:0] alu_res, output logic [31:0] reg_write_data,output logic [31:0] reg_write_addr,
+output logic reg_debug);
+
+//Instruction bits
+logic [6:0] opcde;
+logic [2:0] funct3;
+logic [6:0] funct7;
+logic [4:0] rs1;
+logic [4:0] rs2;
+logic [4:0] rd;
+
+//PC
+logic [31:0] pc;
+logic [31:0] pc_next;
+logic [31:0] instr;
+
+//Control Signals
+logic RegWrite, ALU_Src, MemRead,MemWrite,MemToReg,Branch;
+logic [1:0] ALU_Op;
+logic [3:0] ALU_Sel;
+
+//ALU
+logic [31:0] imm_out;
+logic [31:0] ALU_b;
+logic [31:0] ALU_Out;
+logic [31:0] dmem_data;
+
+
+
+//PC Counter
+pc_counter instance1(.clk(clk),.reset(reset),.pc(pc),.pc_next(pc_next));
+
+//Incrementing PC
+assign pc_next = pc_next + 32'd4;
+
+//Getting correct instructions based on PC
+imem instance1(.pc(pc),.instr(instr));
+
+//Assigning logic based on ISA
+assign opcode = instr[6:0];
+assign func3 = instr[14:12];
+assign func7 =  instr[31:25];
+assign rs1 = instr[19:15];
+assign rs2 = instr[24:20];
+assign rd = instr[11:7];
+
+//Control signals for all datapaths
+control_unit instance1(.opcode(opcode), .RegWrite(RegWrite), .ALU_Src(ALU_Src), .MemRead(MemRead),.MemWrite(MemWrite),.MemToReg(MemToReg),.Branch(Branch),.ALU_Op(ALU_Op));
+ALU_Control instacae1(.funct3(funct3),.funct7(funct7),.ALU_Op(ALU_Op),.ALU_Sel(ALU_Sel));
+
+
+//Testing Purposes
+assign reg_write_addr = rd;
+assign reg_debug = RegWrite
+
+//ALU operators- immediate or from register file
+regfile instance1(.clk(clk), .wenable(RegWrite),.rs1(rs1),.rs2(rs2),.rd(rd),.wdata(reg_write_data), .rd1(rd1),.rd2(rd2));
+imm_gen instance1(.instr(instr),.imm_out(imm_out));
+
+//Decide what b data is going to be for ALU
+assign ALU_b = (ALU_Src) ? imm_out : rd2;
+
+//ALU Operation
+ALU instance1(.a(rd1),.b(ALU_b),.ALU_Sel(ALU_Sel), .ALU_Out(ALU_Out));
+
+
+//DMEM - still need to complete
+assign dmem_data = 32'b0
+
+//Choose what data to store back into register file
+assign reg_write_data = (MemToReg) ? dmem_data : ALU_Out;
+
+
+
+
+
+
+
+endmodule
