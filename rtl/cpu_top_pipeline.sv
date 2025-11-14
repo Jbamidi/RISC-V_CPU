@@ -204,6 +204,18 @@ id_ex_reg id_ex(
     .instr_out(instr_ex)
 );
 
+//Hazard Detection
+hazard_detection hazard_det(
+    .Mem_Read(MemRead_ex),
+    .rs1(rs1),
+    .rs2(rs2),
+    .rd(rd_ex),
+    .pc_en(pc_en),
+    .if_id_en(if_id_en),
+    .id_ex_flush(id_ex_flush)
+);
+
+
 
 //Stage 3 - Execute
 
@@ -236,17 +248,6 @@ ALU ALU_result(
     .b(ALU_b),
     .ALU_Sel(ALU_Sel), 
     .ALU_Out(ALU_res)
-);
-
-//Hazard Detection
-hazard_detection hazard_det(
-    .Mem_Read(MemRead_ex),
-    .rs1(rs1),
-    .rs2(rs2),
-    .rd(rd_ex),
-    .pc_en(pc_en),
-    .if_id_en(if_id_en),
-    .id_ex_flush(id_ex_flush)
 );
 
 // EX/MEM pipeline Register
