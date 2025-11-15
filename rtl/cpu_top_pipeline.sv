@@ -27,11 +27,9 @@ logic [31:0] rd1;
 logic [31:0] rd2;
 
 //Pipeline Signals
-logic stall;
-logic flush;
+logic branch_taken;
+logic id_ex_flush;
 
-assign stall = 1'b0;
-assign flush = 1'b0;
 
 //IF/ID signals
 logic [31:0] pc_plus_4_in_if;
@@ -74,8 +72,14 @@ logic [31:0] instr_wb;
 
 //Hazard Detection
 logic pc_en;
-logic id_ex_flush;
+logic id_ex_flush_hazard;
 logic if_id_en;
+
+//Forwarding Unit
+logic [1:0] forwardA;
+logic [1:0] forwardB;
+logic [31:0] ALU_in_1;
+logic [31:0] ALU_in_2;
 
 
 
@@ -105,8 +109,8 @@ if_id_reg if_id(
     .reset(reset),
     .pc_plus_4_in(pc_plus_4_in_if),
     .instr_in(instr_in),
-    .flush(flush),
-    .stall(stall),
+    .flush(branch_taken),
+    .stall(1'b0),
     .if_id_en(if_id_en),
     .pc_plus_4_out(pc_plus_4_out_if),
     .instr_out(instr_out)
@@ -151,6 +155,19 @@ imm_gen immediate_number(
     .instr(instr_out),
     .imm_out(imm_out)
 );
+
+//Hazard Detection
+hazard_detection hazard_det(
+    .Mem_Read(MemRead_ex),
+    .rs1(rs1),
+    .rs2(rs2),
+    .rd(rd_ex),
+    .pc_en(pc_en),
+    .if_id_en(if_id_en),
+    .id_ex_flush(id_ex_flush_hazard)
+);
+
+assign id_ex_flush = id_ex_flush_hazard | branch_taken;
 
 // IF/EX pipeline Register
 id_ex_reg id_ex(
@@ -204,20 +221,41 @@ id_ex_reg id_ex(
     .instr_out(instr_ex)
 );
 
-//Hazard Detection
-hazard_detection hazard_det(
-    .Mem_Read(MemRead_ex),
-    .rs1(rs1),
-    .rs2(rs2),
-    .rd(rd_ex),
-    .pc_en(pc_en),
-    .if_id_en(if_id_en),
-    .id_ex_flush(id_ex_flush)
-);
+
 
 
 
 //Stage 3 - Execute
+
+//Forwarding Unit
+forwarding_unit forwarding_unit(
+    .rd_mem(rd_mem),
+    .rd_wb(rd_wb),
+    .rs1_ex(rs1_ex),
+    .rs2_ex(rs2_ex),
+    .RegWrite_mem(RegWrite_mem),
+    .RegWrite_wb(RegWrite_wb),
+    .forwardA(forwardA),
+    .forwardB(forwardB)
+);
+
+always_comb begin
+    unique case(forwardA)
+        2'b10: ALU_in_1 = ALU_res_mem;
+        2'b01: ALU_in_1 = reg_write_data;
+        default: ALU_in_1 = rd1_ex;
+    endcase
+
+end
+
+always_comb begin
+    unique case(forwardB)
+        2'b10: ALU_in_2 = ALU_res_mem;
+        2'b01: ALU_in_2 = reg_write_data;
+        default: ALU_in_2 = rd2_ex;
+    endcase
+
+end
 
 //Control Signal for ALU
 ALU_Control ALU_signals(
@@ -227,24 +265,30 @@ ALU_Control ALU_signals(
     .ALU_Sel(ALU_Sel)
 );
 
+logic [31:0] pc_branch_ex;
+assign pc_branch_ex = pc_plus_4_ex - 32'd4;
+
 //Change PC based on Branch and Jump
 pc_next nextpc (
     .opcode(opcode_ex),
-    .pc(pc),
-    .rs1(rd1_ex),
-    .rs2(rd2_ex),
+    .pc(pc_branch_ex),
+    .rs1(ALU_in_1),
+    .rs2(ALU_in_2),
     .imm_out(imm_ex),
     .funct3(funct3_ex),
     .jal_data(jal_data_link),
-    .pc_next(pc_next)
+    .pc_next(pc_next),
+    .branch_taken(branch_taken)
 );
 
+
+
 //Decide what b data is going to be for ALU
-assign ALU_b = (ALU_Src_ex) ? imm_ex : rd2_ex;
+assign ALU_b = (ALU_Src_ex) ? imm_ex : ALU_in_2;
 
 //ALU Operation
 ALU ALU_result(
-    .a(rd1_ex), 
+    .a(ALU_in_1), 
     .b(ALU_b),
     .ALU_Sel(ALU_Sel), 
     .ALU_Out(ALU_res)
@@ -258,7 +302,7 @@ ex_mem_reg ex_mem(
     .flush(1'b0),
 
     .ALU_res_in(ALU_res),
-    .store_data_in(rd2_ex),
+    .store_data_in(ALU_in_2),
     .rd_in(rd_ex),
 
     .RegWrite_in(RegWrite_ex),

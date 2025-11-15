@@ -4,15 +4,8 @@ module pc_counter(input logic clk, input logic reset, input logic [31:0] pc_next
         if (reset) begin
             pc <= 32'b0;
         end
-        else if (!pc_en) begin
-            pc <= pc;
-        
-        end
-        //Otherwise next pc is loaded in pc which will be determined elsewhere
-        else begin
+        else if (pc_en) begin
             pc <= pc_next;
-
-        end
     end
 
 
